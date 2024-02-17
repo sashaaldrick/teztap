@@ -21,10 +21,10 @@ struct VerifyResponse {
     status: String,
     challenge: String,
     #[serde(rename = "challengeCounter")]
-    challenge_counter: u32,
+    // challenge_counter: u32,
     #[serde(rename = "challengesNeeded")]
-    challenges_needed: u32,
-    difficulty: u32,
+    // challenges_needed: u32,
+    // difficulty: u32,
     // status: String,
     // message: String
 }
@@ -33,8 +33,8 @@ struct VerifyResponse {
 struct TxHashResponse {
     #[serde(rename = "txHash")]
     tx_hash: String,
-    status: String,
-    message: String,
+    // status: String,
+    // message: String,
 }
 
 #[tokio::main]
@@ -52,12 +52,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Difficulty: {}", difficulty);
     while counter <= challenges_needed {
-        println!("Started solve challenge loop 🫡");
-        println!("Current Counter: {}", counter);
-        println!("Challenges Needed: {}", challenges_needed);
+        // println!("Started solve challenge loop 🫡");
+        // println!("Current Counter: {}", counter);
+        // println!("Challenges Needed: {}", challenges_needed);
 
         let (correct_hash, nonce) = solve_challenge(&current_challenge_string, &difficulty);
-        println!("Correct Hash/Nonce: {}/{}", correct_hash, nonce);
+        // println!("Correct Hash/Nonce: {}/{}", correct_hash, nonce);
 
         if counter != challenges_needed {
             let verify_response = verify_request(&client, correct_hash, nonce).await?;
@@ -147,9 +147,13 @@ async fn tx_hash_request(client: &reqwest::Client, correct_hash: String, nonce: 
 fn solve_challenge(challenge: &str, difficulty: &u32) -> (String, u32,) {
     let correct_hash;
     let mut nonce: u32 = 0;
+    let mut nonce_str = String::with_capacity(6);
 
-    let start_time = Instant::now(); // Start the timer
+    // let start_time = Instant::now(); // Start the timer
     loop {
+        nonce_str.clear(); // Clear the string
+        nonce_str.push_str(&nonce.to_string());
+
         let combined_string = format!("{}:{}", challenge, nonce.to_string());
         let result = hash(MessageDigest::sha256(), combined_string.as_bytes()).expect("Failed to compute hash");
 
@@ -163,8 +167,8 @@ fn solve_challenge(challenge: &str, difficulty: &u32) -> (String, u32,) {
         nonce += 1;
     }
 
-    let duration = start_time.elapsed(); // Get the elapsed time
-    println!("Time taken: {:.3} s", duration.as_secs_f64());
+    // let duration = start_time.elapsed(); // Get the elapsed time
+    // println!("Time taken: {:.3} s", duration.as_secs_f64());
 
     (correct_hash, nonce)
 }
