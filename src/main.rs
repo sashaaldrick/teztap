@@ -142,16 +142,13 @@ async fn tx_hash_request(correct_hash: String, nonce: u32) -> Result<TxHashRespo
 fn solve_challenge(challenge: &str, difficulty: &u32) -> (String, u32,) {
     let correct_hash;
     let mut nonce: u32 = 0;
-
+    let mut hasher = Sha256::new();
 
     let start_time = Instant::now(); // Start the timer
-
     loop {
         let combined_string = format!("{}:{}", challenge, nonce.to_string());
-
-        let mut hasher = Sha256::new();
         hasher.update(combined_string);
-        let result = hasher.finalize(); // This is the hash result as bytes
+        let result = hasher.finalize_reset(); 
 
         let zero_chars = result.iter().take_while(|&x| *x == 0).count() * 2;
 
