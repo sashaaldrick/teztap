@@ -1,8 +1,8 @@
 use hex::encode as hex_encode;
+use openssl::hash::{hash, MessageDigest};
 use reqwest::Error;
 use serde::Deserialize;
 use serde_json::json;
-use openssl::hash::{hash, MessageDigest};
 use std::time::Instant;
 use tokio;
 
@@ -21,12 +21,10 @@ struct VerifyResponse {
     status: String,
     challenge: String,
     #[serde(rename = "challengeCounter")]
-    // challenge_counter: u32,
+    challenge_counter: u32,
     #[serde(rename = "challengesNeeded")]
-    // challenges_needed: u32,
-    // difficulty: u32,
-    // status: String,
-    // message: String
+    challenges_needed: u32,
+    difficulty: u32,
 }
 
 #[derive(Deserialize, Debug)]
@@ -39,7 +37,7 @@ struct TxHashResponse {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = reqwest::Client::new(); 
+    let client = reqwest::Client::new();
 
     let challenge_response = challenge_request(&client).await?;
     let challenges_needed: u32 = challenge_response.challenges_needed;
@@ -47,17 +45,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut current_challenge_string = challenge_response.challenge;
     let difficulty = challenge_response.difficulty;
 
-
+    println!("Challenges Needed: {}", challenges_needed);
     let start_time = Instant::now(); // Start the timer
 
-    println!("Difficulty: {}", difficulty);
     while counter <= challenges_needed {
         // println!("Started solve challenge loop 🫡");
         // println!("Current Counter: {}", counter);
-        // println!("Challenges Needed: {}", challenges_needed);
-
+        println!("Challenge {}", counter);
         let (correct_hash, nonce) = solve_challenge(&current_challenge_string, &difficulty);
-        // println!("Correct Hash/Nonce: {}/{}", correct_hash, nonce);
 
         if counter != challenges_needed {
             let verify_response = verify_request(&client, correct_hash, nonce).await?;
@@ -69,6 +64,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("In TxHashResponse Scope!");
             let tx_hash_response = tx_hash_request(&client, correct_hash, nonce).await?;
             println!("Operation Hash: {}", tx_hash_response.tx_hash);
+            open::that(format!("https://ghostnet.tzkt.io/{}/11694578", tx_hash_response.tx_hash));
+            // TODO add error handling here
             counter += 1;
         }
     }
@@ -80,7 +77,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn challenge_request(client: &reqwest::Client) -> Result<ChallengeResponse, Error> {
-
     let challenge_post_data = json!({
         "address": "tz1g8vkmcde6sWKaG2NN9WKzCkDM6Rziq194", // Replace with the actual address you want to use
         "amount": 1
@@ -99,8 +95,11 @@ async fn challenge_request(client: &reqwest::Client) -> Result<ChallengeResponse
     challenge_response
 }
 
-async fn verify_request(client: &reqwest::Client, correct_hash: String, nonce: u32) -> Result<VerifyResponse, Error> {
-
+async fn verify_request(
+    client: &reqwest::Client,
+    correct_hash: String,
+    nonce: u32,
+) -> Result<VerifyResponse, Error> {
     let verify_post_data = json!({
         "address": "tz1g8vkmcde6sWKaG2NN9WKzCkDM6Rziq194", // Replace with the actual address you want to use
         "amount": 1,
@@ -121,8 +120,11 @@ async fn verify_request(client: &reqwest::Client, correct_hash: String, nonce: u
     verify_response
 }
 
-async fn tx_hash_request(client: &reqwest::Client, correct_hash: String, nonce: u32) -> Result<TxHashResponse, Error> {
-
+async fn tx_hash_request(
+    client: &reqwest::Client,
+    correct_hash: String,
+    nonce: u32,
+) -> Result<TxHashResponse, Error> {
     let verify_post_data = json!({
         "address": "tz1g8vkmcde6sWKaG2NN9WKzCkDM6Rziq194", // Replace with the actual address you want to use
         "amount": 1,
@@ -144,7 +146,7 @@ async fn tx_hash_request(client: &reqwest::Client, correct_hash: String, nonce: 
 }
 
 // Computes the SHA-256 hash of the input string and returns a hexadecimal representation.
-fn solve_challenge(challenge: &str, difficulty: &u32) -> (String, u32,) {
+fn solve_challenge(challenge: &str, difficulty: &u32) -> (String, u32) {
     let correct_hash;
     let mut nonce: u32 = 0;
     let mut nonce_str = String::with_capacity(6);
@@ -155,7 +157,8 @@ fn solve_challenge(challenge: &str, difficulty: &u32) -> (String, u32,) {
         nonce_str.push_str(&nonce.to_string());
 
         let combined_string = format!("{}:{}", challenge, nonce.to_string());
-        let result = hash(MessageDigest::sha256(), combined_string.as_bytes()).expect("Failed to compute hash");
+        let result = hash(MessageDigest::sha256(), combined_string.as_bytes())
+            .expect("Failed to compute hash");
 
         let zero_chars = result.iter().take_while(|&x| *x == 0).count() * 2;
 
@@ -172,4 +175,3 @@ fn solve_challenge(challenge: &str, difficulty: &u32) -> (String, u32,) {
 
     (correct_hash, nonce)
 }
-
