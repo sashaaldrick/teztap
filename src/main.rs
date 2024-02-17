@@ -45,6 +45,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut current_challenge_string = challenge_response.challenge;
     let difficulty = challenge_response.difficulty;
 
+    let start_time = Instant::now(); // Start the timer
+
     println!("Difficulty: {}", difficulty);
     while counter <= challenges_needed {
         println!("Started solve challenge loop 🫡");
@@ -67,6 +69,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             counter += 1;
         }
     }
+
+    let duration = start_time.elapsed(); // Get the elapsed time
+    println!("Cumulative time taken: {:.3} s", duration.as_secs_f64());
 
     Ok(())
 }
