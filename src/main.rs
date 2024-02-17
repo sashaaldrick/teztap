@@ -2,7 +2,7 @@ use hex::encode as hex_encode;
 use reqwest::Error;
 use serde::Deserialize;
 use serde_json::json;
-use sha2::{Digest, Sha256};
+use openssl::hash::{hash, MessageDigest};
 use std::time::Instant;
 use tokio;
 
@@ -142,13 +142,11 @@ async fn tx_hash_request(correct_hash: String, nonce: u32) -> Result<TxHashRespo
 fn solve_challenge(challenge: &str, difficulty: &u32) -> (String, u32,) {
     let correct_hash;
     let mut nonce: u32 = 0;
-    let mut hasher = Sha256::new();
 
     let start_time = Instant::now(); // Start the timer
     loop {
         let combined_string = format!("{}:{}", challenge, nonce.to_string());
-        hasher.update(combined_string);
-        let result = hasher.finalize_reset(); 
+        let result = hash(MessageDigest::sha256(), combined_string.as_bytes()).expect("Failed to compute hash");
 
         let zero_chars = result.iter().take_while(|&x| *x == 0).count() * 2;
 
