@@ -39,11 +39,14 @@ struct TxHashResponse {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let challenge_response = challenge_request().await?;
+    let client = reqwest::Client::new(); 
+
+    let challenge_response = challenge_request(&client).await?;
     let challenges_needed: u32 = challenge_response.challenges_needed;
     let mut counter = challenge_response.challenge_counter;
     let mut current_challenge_string = challenge_response.challenge;
     let difficulty = challenge_response.difficulty;
+
 
     let start_time = Instant::now(); // Start the timer
 
@@ -57,14 +60,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Correct Hash/Nonce: {}/{}", correct_hash, nonce);
 
         if counter != challenges_needed {
-            let verify_response = verify_request(correct_hash, nonce).await?;
+            let verify_response = verify_request(&client, correct_hash, nonce).await?;
             println!("Status of /verify request: {}", verify_response.status);
             counter += 1;
             current_challenge_string = verify_response.challenge;
         } else {
             // println!("Send manual request using: {}/{}", correct_hash, nonce);
             println!("In TxHashResponse Scope!");
-            let tx_hash_response = tx_hash_request(correct_hash, nonce).await?;
+            let tx_hash_response = tx_hash_request(&client, correct_hash, nonce).await?;
             println!("Operation Hash: {}", tx_hash_response.tx_hash);
             counter += 1;
         }
@@ -76,8 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn challenge_request() -> Result<ChallengeResponse, Error> {
-    let client = reqwest::Client::new();
+async fn challenge_request(client: &reqwest::Client) -> Result<ChallengeResponse, Error> {
 
     let challenge_post_data = json!({
         "address": "tz1g8vkmcde6sWKaG2NN9WKzCkDM6Rziq194", // Replace with the actual address you want to use
@@ -97,8 +99,7 @@ async fn challenge_request() -> Result<ChallengeResponse, Error> {
     challenge_response
 }
 
-async fn verify_request(correct_hash: String, nonce: u32) -> Result<VerifyResponse, Error> {
-    let client = reqwest::Client::new();
+async fn verify_request(client: &reqwest::Client, correct_hash: String, nonce: u32) -> Result<VerifyResponse, Error> {
 
     let verify_post_data = json!({
         "address": "tz1g8vkmcde6sWKaG2NN9WKzCkDM6Rziq194", // Replace with the actual address you want to use
@@ -120,8 +121,7 @@ async fn verify_request(correct_hash: String, nonce: u32) -> Result<VerifyRespon
     verify_response
 }
 
-async fn tx_hash_request(correct_hash: String, nonce: u32) -> Result<TxHashResponse, Error> {
-    let client = reqwest::Client::new();
+async fn tx_hash_request(client: &reqwest::Client, correct_hash: String, nonce: u32) -> Result<TxHashResponse, Error> {
 
     let verify_post_data = json!({
         "address": "tz1g8vkmcde6sWKaG2NN9WKzCkDM6Rziq194", // Replace with the actual address you want to use
