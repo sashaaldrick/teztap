@@ -29,65 +29,53 @@ struct VerifyResponse {
     // message: String
 }
 
-// #[derive(Deserialize, Debug)]
-// struct VerifyResponse {
-//     tx_hash: String,
-// }
+#[derive(Deserialize, Debug)]
+struct TxHashResponse {
+    #[serde(rename = "txHash")]
+    tx_hash: String,
+    status: String,
+    message: String,
+}
 
 #[tokio::main]
-async fn main() {
-    let challenge_response = challenge_request().await;
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let challenge_response = challenge_request().await?;
+    let challenges_needed: u32 = challenge_response.challenges_needed;
+    let mut counter = challenge_response.challenge_counter;
+    let mut current_challenge_string = challenge_response.challenge;
+    let difficulty = challenge_response.difficulty;
 
-    println!("Challenges Needed: {:?}", &challenge_response);
+    println!("Difficulty: {}", difficulty);
+    while counter <= challenges_needed {
+        println!("Started solve challenge loop 🫡");
+        println!("Current Counter: {}", counter);
+        println!("Challenges Needed: {}", challenges_needed);
 
-    match challenge_response {
-        Err(error) => println!("{}", error),
-        Ok(response) => {
-            let (correct_hash, nonce) = solve_challenge(&response.challenge, &response.difficulty);
-            println!("Correct Hash/Nonce: {}/{}", correct_hash, nonce);
+        let (correct_hash, nonce) = solve_challenge(&current_challenge_string, &difficulty);
+        println!("Correct Hash/Nonce: {}/{}", correct_hash, nonce);
 
-            match verify_request(correct_hash, nonce).await {
-                Err(error) => println!("{}", error),
-                Ok(response) => {
-                    println!(
-                        "Challenge/Challenge Counter: {}/{}",
-                        &response.challenge, &response.challenge_counter
-                    )
-                }
-            }
+        if counter != challenges_needed {
+            let verify_response = verify_request(correct_hash, nonce).await?;
+            println!("Status of /verify request: {}", verify_response.status);
+            counter += 1;
+            current_challenge_string = verify_response.challenge;
+        } else {
+            // println!("Send manual request using: {}/{}", correct_hash, nonce);
+            println!("In TxHashResponse Scope!");
+            let tx_hash_response = tx_hash_request(correct_hash, nonce).await?;
+            println!("Operation Hash: {}", tx_hash_response.tx_hash);
+            counter += 1;
         }
     }
 
-    // // Compute the SHA-256 hash of the challenge string
-    // println!(
-    //     "SHA-256 Hash of Combined Challenge String/Nonce: {}/{}",
-    //     correct_hash,
-    //     nonce
-    // );
-
-    // let verify_post_data = json!({
-    //     "address": "tz1MwTpHXayNxvv8R3WrmQSvCqqfJZLyn3Yt", // Replace with the actual address you want to use
-    //     "nonce": nonce,
-    //     "solution": correct_hash
-    // });
-
-    // // Perform the POST request to verify and recieve tez
-    // let res = client
-    //     .post("https://faucet.ghostnet.teztnets.com/verify")
-    //     .json(&verify_post_data)
-    //     .send()
-    //     .await?;
-
-    // let verify_response: ChallengeResponse = res.json().await?;
-
-    // Ok(())
+    Ok(())
 }
 
 async fn challenge_request() -> Result<ChallengeResponse, Error> {
     let client = reqwest::Client::new();
 
     let challenge_post_data = json!({
-        "address": "tz1ZcrFLMV2LkyYpVvL49p5hmBRpoAHf8W4q", // Replace with the actual address you want to use
+        "address": "tz1g8vkmcde6sWKaG2NN9WKzCkDM6Rziq194", // Replace with the actual address you want to use
         "amount": 1
     });
 
@@ -108,7 +96,7 @@ async fn verify_request(correct_hash: String, nonce: u32) -> Result<VerifyRespon
     let client = reqwest::Client::new();
 
     let verify_post_data = json!({
-        "address": "tz1ZcrFLMV2LkyYpVvL49p5hmBRpoAHf8W4q", // Replace with the actual address you want to use
+        "address": "tz1g8vkmcde6sWKaG2NN9WKzCkDM6Rziq194", // Replace with the actual address you want to use
         "amount": 1,
         "nonce": nonce,
         "solution": correct_hash
@@ -127,10 +115,34 @@ async fn verify_request(correct_hash: String, nonce: u32) -> Result<VerifyRespon
     verify_response
 }
 
+async fn tx_hash_request(correct_hash: String, nonce: u32) -> Result<TxHashResponse, Error> {
+    let client = reqwest::Client::new();
+
+    let verify_post_data = json!({
+        "address": "tz1g8vkmcde6sWKaG2NN9WKzCkDM6Rziq194", // Replace with the actual address you want to use
+        "amount": 1,
+        "nonce": nonce,
+        "solution": correct_hash
+    });
+
+    // Perform the POST request to get the challenge string
+    let res = client
+        .post("https://faucet.ghostnet.teztnets.com/verify")
+        .json(&verify_post_data)
+        .send()
+        .await?;
+
+    // Deserialize the response into ChallengeResponse
+    let tx_hash_response: Result<TxHashResponse, Error> = res.json().await;
+
+    tx_hash_response
+}
+
 // Computes the SHA-256 hash of the input string and returns a hexadecimal representation.
-fn solve_challenge(challenge: &str, difficulty: &u32) -> (String, u32) {
+fn solve_challenge(challenge: &str, difficulty: &u32) -> (String, u32,) {
     let correct_hash;
     let mut nonce: u32 = 0;
+
 
     let start_time = Instant::now(); // Start the timer
 
@@ -157,13 +169,3 @@ fn solve_challenge(challenge: &str, difficulty: &u32) -> (String, u32) {
     (correct_hash, nonce)
 }
 
-// GET REQUEST
-// async fn main() -> Result<(), Error> {
-//     let response = reqwest::get("https://faucet.ghostnet.teztnets.com/info")
-//         .await?
-//         .text()
-//         .await?;
-
-//     println!("Response: {}", response);
-//     Ok(())
-// }
