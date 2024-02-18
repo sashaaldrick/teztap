@@ -5,6 +5,7 @@ use serde::Deserialize;
 use serde_json::json;
 use std::time::Instant;
 use tokio;
+use indicatif::{ProgressBar};
 
 #[derive(Deserialize, Debug)]
 struct ChallengeResponse {
@@ -45,32 +46,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut current_challenge_string = challenge_response.challenge;
     let difficulty = challenge_response.difficulty;
 
+    let pb = ProgressBar::new(challenges_needed as u64);
+
     println!("Challenges Needed: {}", challenges_needed);
     let start_time = Instant::now(); // Start the timer
 
     while counter <= challenges_needed {
         // println!("Started solve challenge loop 🫡");
         // println!("Current Counter: {}", counter);
-        println!("Challenge {}", counter);
+        // println!("Challenge {}", counter);
         let (correct_hash, nonce) = solve_challenge(&current_challenge_string, &difficulty);
 
         if counter != challenges_needed {
             let verify_response = verify_request(&client, correct_hash, nonce).await?;
-            println!("Status of /verify request: {}", verify_response.status);
+            // println!("Status of /verify request: {}", verify_response.status);
             counter += 1;
             current_challenge_string = verify_response.challenge;
         } else {
             // println!("Send manual request using: {}/{}", correct_hash, nonce);
-            println!("In TxHashResponse Scope!");
+            // println!("In TxHashResponse Scope!");
             let tx_hash_response = tx_hash_request(&client, correct_hash, nonce).await?;
-            println!("Operation Hash: {}", tx_hash_response.tx_hash);
+            // println!("Operation Hash: {}", tx_hash_response.tx_hash);
             open::that(format!("https://ghostnet.tzkt.io/{}/11694578", tx_hash_response.tx_hash));
             // TODO add error handling here
             counter += 1;
         }
+
+        pb.inc(1);
     }
 
     let duration = start_time.elapsed(); // Get the elapsed time
+
+    pb.finish_with_message("Completed!");
     println!("Cumulative time taken: {:.3} s", duration.as_secs_f64());
 
     Ok(())
