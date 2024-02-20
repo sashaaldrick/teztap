@@ -6,6 +6,9 @@ pub fn solve_challenge(challenge: &str, difficulty: &u32) -> (String, u32) {
     let mut nonce: u32 = 0;
     let mut nonce_str = String::with_capacity(6);
 
+    // TODO: multi-threaded
+    // https://doc.rust-lang.org/std/thread/fn.available_parallelism.html
+    // https://earthly.dev/blog/rust-concurrency-patterns-parallel-programming/
     // let start_time = Instant::now(); // Start the timer
     loop {
         nonce_str.clear(); // Clear the string

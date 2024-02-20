@@ -2,8 +2,6 @@ use serde_json::json;
 use serde::Deserialize;
 use reqwest::Error;
 
-
-
 #[derive(Deserialize, Debug)]
 pub struct ChallengeResponse {
     pub challenge: String,
