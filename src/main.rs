@@ -1,8 +1,8 @@
 mod requests;
 use requests::{challenge_request, ChallengeResponse, verify_request, tx_hash_request};
+mod solve_challenge;
+use solve_challenge::solve_challenge;
 
-use hex::encode as hex_encode;
-use openssl::hash::{hash, MessageDigest};
 use reqwest::Error;
 use std::time::Instant;
 use tokio;
@@ -11,8 +11,8 @@ use indicatif::ProgressBar;
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     let client = reqwest::Client::new();
-  
-    let challenge_response = match challenge_request(&client).await {
+
+      let challenge_response = match challenge_request(&client).await {
         Ok(response) => response,
         Err(e) => {
             println!("The error is {}.", e);
@@ -71,33 +71,3 @@ async fn main() -> Result<(), Error> {
    Ok(())
 }
 
-// Computes the SHA-256 hash of the input string and returns a hexadecimal representation.
-fn solve_challenge(challenge: &str, difficulty: &u32) -> (String, u32) {
-    let correct_hash;
-    let mut nonce: u32 = 0;
-    let mut nonce_str = String::with_capacity(6);
-
-    // let start_time = Instant::now(); // Start the timer
-    loop {
-        nonce_str.clear(); // Clear the string
-        nonce_str.push_str(&nonce.to_string());
-
-        let combined_string = format!("{}:{}", challenge, nonce.to_string());
-        let result = hash(MessageDigest::sha256(), combined_string.as_bytes())
-            .expect("Failed to compute hash");
-
-        let zero_chars = result.iter().take_while(|&x| *x == 0).count() * 2;
-
-        if zero_chars >= *difficulty as usize {
-            correct_hash = hex_encode(result);
-            break;
-        }
-
-        nonce += 1;
-    }
-
-    // let duration = start_time.elapsed(); // Get the elapsed time
-    // println!("Time taken: {:.3} s", duration.as_secs_f64());
-
-    (correct_hash, nonce)
-}
