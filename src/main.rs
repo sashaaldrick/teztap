@@ -12,7 +12,10 @@ use indicatif::ProgressBar;
 async fn main() -> Result<(), Error> {
     let client = reqwest::Client::new();
 
-      let challenge_response = match challenge_request(&client).await {
+    let address = String::from("tz1ZcrFLMV2LkyYpVvL49p5hmBRpoAHf8W4q");
+    let amount: u32 = 10;
+
+      let challenge_response = match challenge_request(&client, &address, amount).await {
         Ok(response) => response,
         Err(e) => {
             println!("The error is {}.", e);
@@ -33,7 +36,7 @@ async fn main() -> Result<(), Error> {
         let (correct_hash, nonce) = solve_challenge(&current_challenge_string, &difficulty);
 
         if challenge_counter != challenges_needed {
-            let verify_response = match verify_request(&client, correct_hash, nonce).await {
+            let verify_response = match verify_request(&client, &address, amount, correct_hash, nonce).await {
                 Ok(response) => response,
                 Err(e) => {
                     println!("The error is {}.", e);
@@ -44,7 +47,7 @@ async fn main() -> Result<(), Error> {
             current_challenge_string = verify_response.challenge;
             challenge_counter += 1;
         } else {
-            let tx_hash_response = match tx_hash_request(&client, correct_hash, nonce).await {
+            let tx_hash_response = match tx_hash_request(&client, &address, amount, correct_hash, nonce).await {
                 Ok(response) => response,
                 Err(e) => {
                     println!("The error is {}.", e);

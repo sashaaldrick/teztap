@@ -25,10 +25,10 @@ pub struct TxHashResponse {
     pub tx_hash: String,
 }
 
-pub async fn challenge_request(client: &reqwest::Client) -> Result<ChallengeResponse, Error> {
+pub async fn challenge_request(client: &reqwest::Client, address: &str, amount: u32) -> Result<ChallengeResponse, Error> {
     let challenge_post_data = json!({
-        "address": "tz1ZcrFLMV2LkyYpVvL49p5hmBRpoAHf8W4q", // Replace with the actual address you want to use
-        "amount": 10
+        "address": address, 
+        "amount": amount
     });
 
     // Perform the POST request to get the challenge string
@@ -45,12 +45,14 @@ pub async fn challenge_request(client: &reqwest::Client) -> Result<ChallengeResp
 
 pub async fn verify_request(
     client: &reqwest::Client,
+    address: &str,
+    amount: u32,
     correct_hash: String,
     nonce: u32,
 ) -> Result<VerifyResponse, Error> {
     let verify_post_data = json!({
-        "address": "tz1ZcrFLMV2LkyYpVvL49p5hmBRpoAHf8W4q", // Replace with the actual address you want to use
-        "amount": 10,
+        "address": address, // Replace with the actual address you want to use
+        "amount": amount,
         "nonce": nonce,
         "solution": correct_hash
     });
@@ -70,12 +72,14 @@ pub async fn verify_request(
 
 pub async fn tx_hash_request(
     client: &reqwest::Client,
+    address: &str,
+    amount: u32,
     correct_hash: String,
     nonce: u32,
 ) -> Result<TxHashResponse, Error> {
     let verify_post_data = json!({
-        "address": "tz1ZcrFLMV2LkyYpVvL49p5hmBRpoAHf8W4q", // Replace with the actual address you want to use
-        "amount": 10,
+        "address": address,
+        "amount": amount,
         "nonce": nonce,
         "solution": correct_hash
     });
