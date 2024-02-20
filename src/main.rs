@@ -1,34 +1,12 @@
+mod requests;
+use requests::{challenge_request, ChallengeResponse, verify_request, tx_hash_request};
+
 use hex::encode as hex_encode;
 use openssl::hash::{hash, MessageDigest};
 use reqwest::Error;
-use serde::Deserialize;
-use serde_json::json;
 use std::time::Instant;
 use tokio;
 use indicatif::ProgressBar;
-
-#[derive(Deserialize, Debug)]
-struct ChallengeResponse {
-    challenge: String,
-    #[serde(rename = "challengeCounter")]
-    challenge_counter: u32,
-    #[serde(rename = "challengesNeeded")]
-    challenges_needed: u32,
-    difficulty: u32,
-}
-
-#[derive(Deserialize)]
-struct VerifyResponse {
-    challenge: String,
-}
-
-#[derive(Deserialize, Debug)]
-struct TxHashResponse {
-    #[serde(rename = "txHash")]
-    tx_hash: String,
-    // status: String,
-    // message: String,
-}
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -91,74 +69,6 @@ async fn main() -> Result<(), Error> {
     println!("Cumulative time taken: {:.3} s", duration.as_secs_f64());
 
    Ok(())
-}
-
-async fn challenge_request(client: &reqwest::Client) -> Result<ChallengeResponse, Error> {
-    let challenge_post_data = json!({
-        "address": "tz1ZcrFLMV2LkyYpVvL49p5hmBRpoAHf8W4q", // Replace with the actual address you want to use
-        "amount": 10
-    });
-
-    // Perform the POST request to get the challenge string
-    let res = client
-        .post("https://faucet.ghostnet.teztnets.com/challenge")
-        .json(&challenge_post_data)
-        .send()
-        .await?;
-
-    // Deserialize the response
-    res.json().await
-
-}
-
-async fn verify_request(
-    client: &reqwest::Client,
-    correct_hash: String,
-    nonce: u32,
-) -> Result<VerifyResponse, Error> {
-    let verify_post_data = json!({
-        "address": "tz1ZcrFLMV2LkyYpVvL49p5hmBRpoAHf8W4q", // Replace with the actual address you want to use
-        "amount": 10,
-        "nonce": nonce,
-        "solution": correct_hash
-    });
-
-    // Perform the POST request to get the challenge string
-    let res = client
-        .post("https://faucet.ghostnet.teztnets.com/verify")
-        .json(&verify_post_data)
-        .send()
-        .await?;
-
-    // Deserialize the response into ChallengeResponse
-    let verify_response = res.json().await;
-
-    verify_response
-}
-
-async fn tx_hash_request(
-    client: &reqwest::Client,
-    correct_hash: String,
-    nonce: u32,
-) -> Result<TxHashResponse, Error> {
-    let verify_post_data = json!({
-        "address": "tz1ZcrFLMV2LkyYpVvL49p5hmBRpoAHf8W4q", // Replace with the actual address you want to use
-        "amount": 10,
-        "nonce": nonce,
-        "solution": correct_hash
-    });
-
-    // Perform the POST request to get the challenge string
-    let res = client
-        .post("https://faucet.ghostnet.teztnets.com/verify")
-        .json(&verify_post_data)
-        .send()
-        .await?;
-
-    // Deserialize the response into ChallengeResponse
-    let tx_hash_response: Result<TxHashResponse, Error> = res.json().await;
-
-    tx_hash_response
 }
 
 // Computes the SHA-256 hash of the input string and returns a hexadecimal representation.
