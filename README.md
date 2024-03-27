@@ -1,6 +1,6 @@
 # TezTap 🚰
 
-Ever tried to use npx getTez and felt bad that you are putting your machine through the pain of PoW challenges using JS? Well now, we have a solution for you.
+Ever tried to use `npx getTez` and felt bad that you are putting your machine through the pain of PoW challenges using JS? Well now, we have a solution for you.
 
 Built in Rust 🦀
 
