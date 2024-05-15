@@ -12,8 +12,8 @@ use indicatif::ProgressBar;
 async fn main() -> Result<(), Error> {
     let client = reqwest::Client::new();
 
-    let address = String::from("tz1ZcrFLMV2LkyYpVvL49p5hmBRpoAHf8W4q");
-    let amount: u32 = 10;
+    let address = String::from("tz1MwTpHXayNxvv8R3WrmQSvCqqfJZLyn3Yt");
+    let amount: u32 = 6000;
 
       let challenge_response = match challenge_request(&client, &address, amount).await {
         Ok(response) => response,

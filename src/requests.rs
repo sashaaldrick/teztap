@@ -49,7 +49,7 @@ pub async fn verify_request(
     nonce: u32,
 ) -> Result<VerifyResponse, Error> {
     let verify_post_data = json!({
-        "address": address, // Replace with the actual address you want to use
+        "address": address, 
         "amount": amount,
         "nonce": nonce,
         "solution": correct_hash
